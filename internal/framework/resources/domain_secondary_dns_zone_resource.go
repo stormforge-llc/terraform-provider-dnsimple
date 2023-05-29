@@ -45,7 +45,6 @@ func (r *DomainSecondaryZoneResource) Schema(_ context.Context, _ resource.Schem
 			"name": schema.StringAttribute{
 				Required: true,
 			},
-			"id": common.IDInt64Attribute(),
 		},
 	}
 }

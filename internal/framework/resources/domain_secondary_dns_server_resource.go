@@ -25,6 +25,7 @@ import (
 var (
 	_ resource.Resource                = &DomainSecondaryServerResource{}
 	_ resource.ResourceWithConfigure   = &DomainSecondaryServerResource{}
+	_ resource.ResourceWithImportState = &DomainSecondaryServerResource{}
 )
 
 func NewDomainSecondaryServerResource() resource.Resource {
@@ -231,6 +232,10 @@ func (r *DomainSecondaryServerResource) Delete(ctx context.Context, req resource
 		)
 		return
 	}
+}
+
+func (r *DomainSecondaryServerResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
+	resource.ImportStatePassthroughID(ctx, path.Root("id"), req, resp)
 }
 
 func (r *DomainSecondaryServerResource) updateModelFromAPIResponse(server *dnsimple.SecondaryServer, data *DomainSecondaryServerResourceModel) {

@@ -2,6 +2,7 @@ package resources
 
 import (
 	"context"
+	"strconv"
 	"errors"
 	"fmt"
 
@@ -154,7 +155,7 @@ func (r *DomainSecondaryServerResource) Create(ctx context.Context, req resource
 			return
 		}
 
-		if _, err := r.config.Client.SecondaryDNS.LinkPrimaryServerToSecondaryZone(ctx, r.config.AccountID, string(data.ID.ValueInt64()), zone); err != nil {
+		if _, err := r.config.Client.SecondaryDNS.LinkPrimaryServerToSecondaryZone(ctx, r.config.AccountID, strconv.Itoa(int(data.ID.ValueInt64())), zone); err != nil {
 			var errorResponse *dnsimple.ErrorResponse
 			if errors.As(err, &errorResponse) {
 				resp.Diagnostics.Append(utils.AttributeErrorsToDiagnostics(errorResponse)...)
@@ -185,7 +186,7 @@ func (r *DomainSecondaryServerResource) Read(ctx context.Context, req resource.R
 		return
 	}
 
-	response, err := r.config.Client.SecondaryDNS.GetPrimaryServer(ctx, r.config.AccountID, string(data.ID.ValueInt64()))
+	response, err := r.config.Client.SecondaryDNS.GetPrimaryServer(ctx, r.config.AccountID, strconv.Itoa(int(data.ID.ValueInt64())))
 
 	if err != nil {
 		var errorResponse *dnsimple.ErrorResponse
@@ -221,7 +222,7 @@ func (r *DomainSecondaryServerResource) Delete(ctx context.Context, req resource
 
 	tflog.Info(ctx, fmt.Sprintf("Deleting DNSimple secondary DNS primary server: %s, %s", data.Name, data.ID))
 
-	_, err := r.config.Client.SecondaryDNS.DeletePrimaryServer(ctx, r.config.AccountID, string(data.ID.ValueInt64()))
+	_, err := r.config.Client.SecondaryDNS.DeletePrimaryServer(ctx, r.config.AccountID, strconv.Itoa(int(data.ID.ValueInt64())))
 
 	if err != nil {
 		resp.Diagnostics.AddError(

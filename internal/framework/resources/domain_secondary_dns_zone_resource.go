@@ -148,8 +148,9 @@ func (r *DomainSecondaryZoneResource) Read(ctx context.Context, req resource.Rea
 	}
 
 	if !found {
+		err := fmt.Errorf("DNSimple secondary zone %q not found", data.Name.ValueString())
 		resp.Diagnostics.AddError(
-			fmt.Sprintf("DNSimple secondary zone %q not found", data.Name),
+			"failed to find DNSimple secondary zone in servers response",
 			err.Error(),
 		)
 		return

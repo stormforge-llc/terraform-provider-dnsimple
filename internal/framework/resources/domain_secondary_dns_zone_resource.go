@@ -33,7 +33,7 @@ type DomainSecondaryZoneResource struct {
 // DomainSecondaryZoneResourceModel describes the resource data model.
 type DomainSecondaryZoneResourceModel struct {
 	Name types.String `tfsdk:"name"`
-	ID types.Int64
+	ID types.Int64 `tfsdk:"id"`
 }
 
 func (r *DomainSecondaryZoneResource) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {

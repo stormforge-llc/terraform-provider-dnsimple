@@ -9,6 +9,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/terraform-providers/terraform-provider-dnsimple/internal/framework/common"
 	"github.com/terraform-providers/terraform-provider-dnsimple/internal/framework/utils"
 )
@@ -17,6 +18,7 @@ import (
 var (
 	_ resource.Resource                = &DomainSecondaryZoneResource{}
 	_ resource.ResourceWithConfigure   = &DomainSecondaryZoneResource{}
+	_ resource.ResourceWithImportState = &DomainSecondaryZoneResource{}
 )
 
 func NewDomainSecondaryZoneResource() resource.Resource {
@@ -31,6 +33,7 @@ type DomainSecondaryZoneResource struct {
 // DomainSecondaryZoneResourceModel describes the resource data model.
 type DomainSecondaryZoneResourceModel struct {
 	Name types.String `tfsdk:"name"`
+	ID types.Int64
 }
 
 func (r *DomainSecondaryZoneResource) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
@@ -39,11 +42,14 @@ func (r *DomainSecondaryZoneResource) Metadata(ctx context.Context, req resource
 
 func (r *DomainSecondaryZoneResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		// This description is used by the documentation generator and the language server.
 		MarkdownDescription: "DNSimple domain secondary zone resource",
 		Attributes: map[string]schema.Attribute{
 			"name": schema.StringAttribute{
 				Required: true,
+			},
+			"id": schema.Int64Attribute{
+				// For most of the APIs, domain name is the primary key exposed, rather than the ID
+				Computed: true,
 			},
 		},
 	}
@@ -161,6 +167,11 @@ func (r *DomainSecondaryZoneResource) Delete(ctx context.Context, req resource.D
 	// No-op; DNSimple's secondary DNS zone API has no "delete secondary zone" API, only a "delete zone" API
 }
 
+func (r *DomainSecondaryZoneResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
+	resource.ImportStatePassthroughID(ctx, path.Root("name"), req, resp)
+}
+
 func (r *DomainSecondaryZoneResource) updateModelFromAPIResponse(server *dnsimple.Zone, data *DomainSecondaryZoneResourceModel) {
 	data.Name = types.StringValue(server.Name)
+	data.ID = types.Int64Value(server.ID)
 }

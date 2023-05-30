@@ -123,38 +123,11 @@ func (r *DomainSecondaryZoneResource) Read(ctx context.Context, req resource.Rea
 		return
 	}
 
-	// Unfortunately, DNSimple secondary DNS API doesn't have a Get API. Best you can do is infer it. 
-	serversResponse, err := r.config.Client.SecondaryDNS.ListPrimaryServers(ctx, r.config.AccountID, &dnsimple.SecondaryServerListOptions{})
-	if err != nil {
-		resp.Diagnostics.AddError(
-			"failed to read DNSimple secondary servers",
-			err.Error(),
-		)
-		return
-	}
-
-	found := false
-	for _, server := range serversResponse.Data {
-		for _, zone := range server.LinkedSecondaryZones {
-			if zone == data.Name.ValueString() {
-				found = true
-				break
-			}
-		}
-
-		if found {
-			break
-		}
-	}
-
-	if !found {
-		err := fmt.Errorf("DNSimple secondary zone %q not found", data.Name.ValueString())
-		resp.Diagnostics.AddError(
-			"failed to find DNSimple secondary zone in servers response",
-			err.Error(),
-		)
-		return
-	}
+	// Unfortunately, DNSimple secondary DNS API doesn't have a Get API for secondary zones. Best you can do is infer it exists if it's linked to a server,
+	// and below we use ListPrimaryServers to do that. This won't handle zones that haven't been linked to a server already though. For simplicity, we'll
+	// assume that if we can read the zone from GetZone that's enough to consider the "secondary zone resource" created, when in fact we will lazily create
+	// it as needed and be aggressive about "recreating" it when attributes change. That is, we will commit on Import that Create will subsequently succeed
+	// by making our handling of the "this zone was already created" error idempotent.
 
 	r.updateModelFromAPIResponse(zoneResponse.Data, data)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)

@@ -138,7 +138,10 @@ func (r *DomainSecondaryServerResource) Create(ctx context.Context, req resource
 		return
 	}
 
-	for _, zoneValue := range data.Zones.Elements() {
+	zones := data.Zones
+	r.updateModelFromAPIResponse(response.Data, data)
+
+	for _, zoneValue := range zones.Elements() {
 		tfv, err := zoneValue.ToTerraformValue(ctx)
 		if err != nil {
 			resp.Diagnostics.AddError(
@@ -156,7 +159,8 @@ func (r *DomainSecondaryServerResource) Create(ctx context.Context, req resource
 			return
 		}
 
-		if _, err := r.config.Client.SecondaryDNS.LinkPrimaryServerToSecondaryZone(ctx, r.config.AccountID, strconv.Itoa(int(response.Data.ID)), zone); err != nil {
+		linkResponse, err := r.config.Client.SecondaryDNS.LinkPrimaryServerToSecondaryZone(ctx, r.config.AccountID, strconv.Itoa(int(response.Data.ID)), zone)
+		if err != nil {
 			var errorResponse *dnsimple.ErrorResponse
 			if errors.As(err, &errorResponse) {
 				resp.Diagnostics.Append(utils.AttributeErrorsToDiagnostics(errorResponse)...)
@@ -168,11 +172,10 @@ func (r *DomainSecondaryServerResource) Create(ctx context.Context, req resource
 			)
 			return
 		}
+
+		r.updateModelFromAPIResponse(linkResponse.Data, data)
 	}
 
-	r.updateModelFromAPIResponse(response.Data, data)
-
-	// Save data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
 
@@ -191,6 +194,7 @@ func (r *DomainSecondaryServerResource) Read(ctx context.Context, req resource.R
 	if err != nil {
 		var errorResponse *dnsimple.ErrorResponse
 		if errors.As(err, &errorResponse) {
+			// TODO: Handle NotFound
 			resp.Diagnostics.Append(utils.AttributeErrorsToDiagnostics(errorResponse)...)
 		}
 		resp.Diagnostics.AddError(
@@ -220,8 +224,41 @@ func (r *DomainSecondaryServerResource) Delete(ctx context.Context, req resource
 		return
 	}
 
-	tflog.Info(ctx, fmt.Sprintf("Deleting DNSimple secondary DNS primary server: %s, %s", data.Name, data.ID))
+	// All zones must be unlinked before we can delete the server
+	for _, zoneAttr := range data.Zones.Elements() {
+		zoneValue, err := zoneAttr.ToTerraformValue(ctx)
+		if err != nil {
+			resp.Diagnostics.AddError(
+				"unexpected failure casting zone value to terraform value when deleting DNSimple secondary server",
+				err.Error(),
+			)
+			return
+		}
 
+		var zone string
+		if err := zoneValue.As(&zone); err != nil {
+			resp.Diagnostics.AddError(
+				"unexpected failure casting zone value as string when deleting DNSimple secondary server",
+				err.Error(),
+			)
+			return
+		}
+
+		if _, err := r.config.Client.SecondaryDNS.UnlinkPrimaryServerToSecondaryZone(ctx, r.config.AccountID, strconv.Itoa(int(data.ID.ValueInt64())), zone); err != nil {
+			var errorResponse *dnsimple.ErrorResponse
+			if errors.As(err, &errorResponse) {
+				// TODO: Handle NotFound
+				resp.Diagnostics.Append(utils.AttributeErrorsToDiagnostics(errorResponse)...)
+			}
+			resp.Diagnostics.AddError(
+				fmt.Sprintf("failed to unlink zone when deleting DNSimple secondary DNS primary server %s", data.Name.ValueString()),
+				err.Error(),
+			)
+			return
+		}
+	}
+
+	tflog.Info(ctx, fmt.Sprintf("Deleting DNSimple secondary DNS primary server: %s, %s", data.Name, data.ID))
 	_, err := r.config.Client.SecondaryDNS.DeletePrimaryServer(ctx, r.config.AccountID, strconv.Itoa(int(data.ID.ValueInt64())))
 
 	if err != nil {

@@ -41,7 +41,7 @@ type DomainSecondaryServerResource struct {
 // DomainSecondaryServerResourceModel describes the resource data model.
 type DomainSecondaryServerResourceModel struct {
 	Name         types.String `tfsdk:"name"`
-	IPAddress    types.String `tfsdk:"ip_address"`
+	IPAddress    types.String `tfsdk:"address"`
 	Port         types.Int64  `tfsdk:"port"`
 	ID           types.Int64  `tfsdk:"id"`
 	Zones        types.Set    `tfsdk:"zones"`

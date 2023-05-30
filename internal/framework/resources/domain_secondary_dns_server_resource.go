@@ -129,7 +129,6 @@ func (r *DomainSecondaryServerResource) Create(ctx context.Context, req resource
 		var errorResponse *dnsimple.ErrorResponse
 		if errors.As(err, &errorResponse) {
 			resp.Diagnostics.Append(utils.AttributeErrorsToDiagnostics(errorResponse)...)
-			return
 		}
 
 		resp.Diagnostics.AddError(
@@ -157,11 +156,10 @@ func (r *DomainSecondaryServerResource) Create(ctx context.Context, req resource
 			return
 		}
 
-		if _, err := r.config.Client.SecondaryDNS.LinkPrimaryServerToSecondaryZone(ctx, r.config.AccountID, strconv.Itoa(int(data.ID.ValueInt64())), zone); err != nil {
+		if _, err := r.config.Client.SecondaryDNS.LinkPrimaryServerToSecondaryZone(ctx, r.config.AccountID, strconv.Itoa(int(response.Data.ID)), zone); err != nil {
 			var errorResponse *dnsimple.ErrorResponse
 			if errors.As(err, &errorResponse) {
 				resp.Diagnostics.Append(utils.AttributeErrorsToDiagnostics(errorResponse)...)
-				return
 			}
 
 			resp.Diagnostics.AddError(
